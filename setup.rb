@@ -7,8 +7,8 @@ end
 
 files = [
   "lib/pbr.rb",
+  "lib/pbr/rui/pbr_rui.rb",  
   "lib/pbr/ui/pbr_ui.rb",
-  "lib/pbr/rui/pbr_rui.rb",
   "lib/pbr/ui/gtk/pbr_uigtk.rb"
 ]
 

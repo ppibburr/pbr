@@ -1079,7 +1079,6 @@ body, html {margin:0; padding:0; min-height: 100vh;}
   
   class WebView < PBR::UI::WebView
     include PBR::UI::Gtk::Widget 
-    include RUI::View
     
     def self.constructor wrapped, opts={}, &b
       WebKit::WebView.new

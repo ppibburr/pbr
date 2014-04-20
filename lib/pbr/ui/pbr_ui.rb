@@ -1131,15 +1131,7 @@ module PBR
     end
     
     class WebView < Widget
-      def html= code; end
-      def html; end
-      def location= loc; end
-      def location; end
-      def open uri; end
-      
-      def on_load &b
-
-      end         
+      include RUI::View        
     end
   end
 end
