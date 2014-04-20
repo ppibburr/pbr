@@ -1131,7 +1131,7 @@ module PBR
     end
     
     class WebView < Widget
-      include RUI::View        
+      include PBR::RUI::View        
     end
   end
 end

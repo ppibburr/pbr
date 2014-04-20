@@ -357,7 +357,7 @@ module PBR::UI::Gtk
   
   class ListBox < PBR::UI::ListBox
     include PBR::UI::Gtk::Widget
-    include RUI::View
+    include PBR::RUI::View
     
     def self.constructor *o
       v = ::WebKit::WebView.new
@@ -368,9 +368,9 @@ module PBR::UI::Gtk
           target = WebKit::DOMElement.wrap(a[1].get_target)
           
           list = [target]
-          list.extend RUI::Collection::Internal
+          list.extend PBR::RUI::Collection::Internal
           
-          col = RUI::Collection.new(list)
+          col = PBR::RUI::Collection.new(list)
           
           next if ["HTML", "BODY"].index(col.tags[0])
           
@@ -455,9 +455,9 @@ module PBR::UI::Gtk
       i = 0 if i < 0
 
       list = [col[i]]
-      list.extend RUI::Collection::Internal
+      list.extend PBR::RUI::Collection::Internal
 
-      n = RUI::Collection.new(list)
+      n = PBR::RUI::Collection.new(list)
       n.fire :click
     end
     
