@@ -33,8 +33,20 @@ module PBR::UI::Gtk
     
     def alert title="", body=""
       g = Gtk::MessageDialog.new(toplevel.native, ::Gtk::DialogFlags::DESTROY_WITH_PARENT, ::Gtk::MessageType::INFO, ::Gtk::ButtonsType::CLOSE)
-      g.set_property "secondary-text", body
-      g.set_property "text", title
+      vb = g.get_message_area
+      g.set_title "PBR-UI Message"
+      i = -1
+      vb.foreach do |q|
+        i += 1
+        if i == 0
+          q.set_markup "<big><b>#{title}</b></big>" 
+          
+        elsif i == 1
+          q.set_label body
+          q.show
+        end
+      end
+      
       g.run
       g.destroy
     end
@@ -340,12 +352,70 @@ module PBR::UI::Gtk
       n = ::Gtk::Button.new
     end
     
+    def initialize opts={}
+      label = opts.delete :label
+      theme = opts.delete :theme
+      
+      super opts
+      
+      p theme,:LABEL
+      
+      @image = theme ? PBR::UI::Gtk::Image.new(:theme=>theme) : PBR::UI::Gtk::Image.new(:size=>[12,12])
+      @label = PBR::UI::Gtk::Label.new(:text=>label)
+
+      add @hb = PBR::UI::Gtk::Flow.new
+      
+      @hb.add @image,true,true if theme and !label
+      @hb.add @image,false,false if theme and label      
+      @hb.add @label,true,true if label or !theme
+      
+      @show_image = true if theme
+      @show_label = true if label
+      
+      @image.native.ref
+      @label.native.ref
+    end
+    
+    def image *o
+      if o.empty?
+        return @image
+      end
+      
+      @hb.remove @image
+      @hb.remove @label
+      
+      if @show_label
+        @hb.add @image, false,false
+        @hb.add @label,true,true
+      else
+        @hb.add @image, true, true
+      end
+      
+      @show_image = true
+      
+      @image.modify o[0]
+    end
+    
     def label
-      native.get_label
+      return unless @label
+      @label.text
     end
     
     def label= txt
-      native.set_label txt
+      if @show_image
+        @hb.remove @image
+        @hb.remove @label
+        
+        @show_label = nil
+        
+        @hb.add @image, false,false
+      end
+      
+      @hb.add @label, true, true if !@show_label
+      
+      @show_label = true
+      
+      @label.text = txt
     end
     
     def on_click &b
@@ -627,7 +697,7 @@ module PBR::UI::Gtk
     end
     
     def text= txt
-      native.set_label txt
+      native.set_markup txt
     end
     
     def text
@@ -699,9 +769,11 @@ module PBR::UI::Gtk
     def initialize opts={}
       i_opts = {:size=>[24,24]}
       
-      i_opts[:file] = opts.delete(:file) if opts[:file]
-      i_opts[:src]  = opts.delete(:src)  if opts[:src]
-      i_opts[:size] = opts.delete(:size)  if opts[:size]      
+      i_opts[:file]  = opts.delete(:file) if opts[:file]
+      i_opts[:src]   = opts.delete(:src) if opts[:src]
+      i_opts[:size]  = opts.delete(:size) if opts[:size]      
+      i_opts[:theme] = opts.delete(:theme) if opts[:theme]   
+      i_opts.delete(:size) if i_opts[:theme]
       
       super opts
       
@@ -737,6 +809,45 @@ module PBR::UI::Gtk
     end
   end  
   
+  def self.get_icon_theme widget
+    name, size = widget.native.get_icon_name(FFI::MemoryPointer.new(:pointer))
+    prepend = case size
+    when ::Gtk::IconSize::MENU
+      PBR::UI::IconSize::MENU
+    when ::Gtk::IconSize::BUTTON
+      PBR::UI::IconSize::BUTTON
+    when ::Gtk::IconSize::SMALL_TOOLBAR
+      PBR::UI::IconSize::TOOLBAR
+    when ::Gtk::IconSize::LARGE_TOOLBAR
+      PBR::UI::IconSize::TOOLBAR_BIG
+    when ::Gtk::IconSize::DIALOG
+      PBR::UI::IconSize::LARGE                     
+    end
+    
+    return prepend+"-"+name  
+  end
+  
+  def self.icon_from_theme theme
+    raw  = theme.split("-")
+    size = raw.shift
+    name = raw.join("-")
+    
+    native_size = case size
+    when PBR::UI::IconSize::MENU
+      ::Gtk::IconSize::MENU
+    when PBR::UI::IconSize::LARGE
+      ::Gtk::IconSize::DIALOG
+    when PBR::UI::IconSize::TOOLBAR
+      ::Gtk::IconSize::SMALL_TOOLBAR
+    when PBR::UI::IconSize::TOOLBAR_BIG
+      ::Gtk::IconSize::LARGE_TOOLBAR
+    when PBR::UI::IconSize::BUTTON
+      ::Gtk::IconSize::BUTTON                 
+    end
+    
+    return name, native_size    
+  end
+  
   class Image < PBR::UI::Image
     include PBR::UI::Gtk::Widget
     
@@ -750,11 +861,24 @@ module PBR::UI::Gtk
       
       super opts
       
-      native.set_from_pixbuf ::GdkPixbuf::Pixbuf.new(nil.to_ptr, false, 8, *(o[:size] ? o[:size] : [0,0]))
+      unless o[:theme]
+        native.set_from_pixbuf ::GdkPixbuf::Pixbuf.new(nil.to_ptr, false, 8, *(o[:size] ? o[:size] : [0,0]))
+      else
+        self.theme = o[:theme]
+      end
       
       o.each_pair do |k,v|
         send :"#{k}=", v
       end
+    end
+    
+    def theme
+      PBR::UI::Gtk::get_icon_theme self
+    end
+    
+    def theme= theme
+      name, size = PBR::UI::Gtk::icon_from_theme(theme)
+      native.set_from_icon_name name,size
     end
     
     def src= src

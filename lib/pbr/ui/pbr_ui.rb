@@ -133,7 +133,7 @@ module PBR
       end      
       
       def create_widget type, opts = {}
-        widget = self.class.backend::const_get(type).new(opts) 
+        @last = widget = self.class.backend::const_get(type).new(opts) 
         
         widget.send :set_application, self
         
@@ -158,12 +158,20 @@ module PBR
         return widget   
       end
       
+      public
+      
+      def last
+        @last
+      end
+      
+      def this
+        @buildee
+      end
+      
       # Quits the 'main' loop.
       def quit
         self.class.backend.quit
       end
-      
-      public
       
       # Allows for 'Builder' style
       #
@@ -979,10 +987,24 @@ module PBR
       end
     end
     
+    module IconSize
+      MENU        = 'menu'
+      BUTTON      = 'button'
+      TOOLBAR     = 'toolbar'
+      TOOLBAR_BIG = 'toolbar_big'
+      LARGE       = 'large'
+    end
+    
     # Widget rendering a image to the screen
     class Image < Widget
       def src
         @src
+      end
+      
+      def theme= theme
+      end
+      
+      def theme
       end
       
       def file
