@@ -76,26 +76,26 @@ module PBR
           end
         end
       
-        if !!@build_mode
-          if opts[:scrolled]
-            old  = widget
-            
-            q_opts = {:expand=>opts[:expand], :fill=>opts[:fill], :padding=>opts[:padding]}
-            
-            opts.delete(:expand)
-            opts.delete(:fill)
-            opts.delete(:padding)
-            
-            widget = scrolled(q_opts)
-            widget.add old
-            
-            
-            
-            if @build_mode
-              return
-            end
-          end
+        if opts[:scrolled]
+          old  = widget
           
+          q_opts = {:expand=>opts[:expand], :fill=>opts[:fill], :padding=>opts[:padding]}
+          
+          opts.delete(:expand)
+          opts.delete(:fill)
+          opts.delete(:padding)
+          
+          widget = scrolled(q_opts)
+          widget.add old
+          
+          
+          
+          if @build_mode
+            return
+          end
+        end      
+      
+        if @build_mode          
           if opts[:center]
             old  = widget
             
@@ -132,8 +132,16 @@ module PBR
         end
       end      
       
+      def create_widget type, opts = {}
+        widget = self.class.backend::const_get(type).new(opts) 
+        
+        widget.send :set_application, self
+        
+        return widget     
+      end
+      
       def create_append type, opts={}
-        widget = self.class.backend::const_get(type).new(opts)
+        widget = create_widget(type, opts)
         
         append_widget(widget, opts)
         
@@ -472,6 +480,13 @@ module PBR
       # @param opts [Hash] options
       def modify opts={}
         opts.each_key do |k|
+          if (k.to_s.split("_")[0] == "on") and !respond_to?(:"#{k}=")
+            send k do |*o|
+              @_application.send opts[k], *o
+            end
+            next
+          end
+          
           send :"#{k}=", opts[k] if respond_to?(:"#{k}=")
         end
       end
@@ -542,6 +557,10 @@ module PBR
       private
       def set_container container
         @_container = container
+      end
+      
+      def set_application app
+        @_application = app
       end
     end
     

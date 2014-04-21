@@ -949,7 +949,8 @@ module PBR::UI::Gtk
       n.signal_connect "load-finished" do
       document = n.get_main_frame.get_dom_document
         e=n.get_main_frame.get_dom_document.get_element_by_id("internal")
-        
+        e.focus
+        wrapper.send :init
         e.add_event_listener "input", true do
           if wrapper.send :check_modify
             wrapper.send :modified
@@ -974,9 +975,17 @@ module PBR::UI::Gtk
       end
       
       n.load_html_string "<html><head><style>
-body, html {margin:0; padding:0; min-height: 100vh;}
+body, html {margin:0; padding:0; min-height: 100%;}
 </style></head><body height=100%><div style='height:100%;' id=internal tabindex=0 contenteditable=true></div><div id=selection style='display: none;'></div></body></html>'", ""
       n
+    end
+    
+    def initialize opts={}
+      super({})
+      
+      @on_init = proc do
+        modify(opts)
+      end
     end
     
     def text
@@ -993,6 +1002,10 @@ body, html {margin:0; padding:0; min-height: 100vh;}
     
     def redo
       cmd :redo
+    end
+    
+    def font_size= size
+      cmd :FontSize, size
     end
     
     def cut
@@ -1040,6 +1053,59 @@ body, html {margin:0; padding:0; min-height: 100vh;}
       document.get_element_by_id('selection').get_inner_text
     end    
     
+    def insert pos, txt
+      set_caret pos
+      code = "
+function pasteHtmlAtCaret(html) {
+    var sel, range;
+    if (window.getSelection) {
+        // IE9 and non-IE
+        sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+
+            // Range.createContextualFragment() would be useful here but is
+            // only relatively recently standardized and is not supported in
+            // some browsers (IE9, for one)
+            var el = document.createElement(\"div\");
+            el.innerHTML = html;
+            var frag = document.createDocumentFragment(), node, lastNode;
+            while ( (node = el.firstChild) ) {
+                lastNode = frag.appendChild(node);
+            }
+" + "
+            range.insertNode(frag);
+
+            // Preserve the selection
+            if (lastNode) {
+                range = range.cloneRange();
+                range.setStartAfter(lastNode);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    } else if (document.selection && document.selection.type != \"Control\") {
+        // IE < 9
+        document.selection.createRange().pasteHTML(html);
+    }
+}
+" + <<EOC
+pasteHtmlAtCaret("#{txt}");
+EOC
+
+      native.execute_script code
+    end
+    
+    def prepend txt
+      insert 0, txt
+    end
+    
+    def append_txt
+    
+    end
+    
     def unmodified= bool
       if bool
         @save = internal.get_inner_html
@@ -1058,8 +1124,23 @@ body, html {margin:0; padding:0; min-height: 100vh;}
     end
     
     private
-    def cmd q
-      internal.get_owner_document.exec_command "#{q}", false, ""
+    
+    def set_caret pos
+code=<<EOC
+var el = document.getElementById("internal");
+var range = document.createRange();
+var sel = window.getSelection();
+range.setStart(el, #{pos});
+range.collapse(true);
+sel.removeAllRanges();
+sel.addRange(range);
+EOC
+
+      native.execute_script code
+    end
+    
+    def cmd q, val=""
+      internal.get_owner_document.exec_command "#{q}", true, val.to_s
     end
     
     def document
@@ -1075,6 +1156,12 @@ body, html {margin:0; padding:0; min-height: 100vh;}
       
       return bool
     end    
+    
+    def init
+      if cb=@on_init
+        cb.call
+      end
+    end
   end
   
   class WebView < PBR::UI::WebView
