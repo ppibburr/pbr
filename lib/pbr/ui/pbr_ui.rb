@@ -499,6 +499,12 @@ module PBR
         end
       end
       
+      def sensitive= bool
+      end
+      
+      def sensitive?
+      end
+      
       # Sets the text to display after the user hovers the mouse over for a length of time
       #
       # @param txt [String] the text to display
@@ -972,6 +978,14 @@ module PBR
         @on_modify_cb = b
       end
       
+      def on_unmodify &b
+        @on_unmodify_cb = b
+      end      
+      
+      def on_toggle_modify &b
+        @on_toggle_modify_cb = b
+      end
+      
       def on_source_load &b
         @source_loaded_cb = b
       end
@@ -981,7 +995,18 @@ module PBR
         @source_loaded_cb.call(self) if @source_loaded_cb
       end
       
+      def unmodified
+        cb = @on_toggle_modify_cb
+        cb.call(self) if cb      
+      
+        cb = @on_unmodify_cb
+        cb.call(self) if cb
+      end      
+      
       def modified
+        cb = @on_toggle_modify_cb
+        cb.call(self) if cb      
+      
         cb = @on_modify_cb
         cb.call(self) if cb
       end

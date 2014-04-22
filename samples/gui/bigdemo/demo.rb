@@ -68,10 +68,30 @@ App.run(:title=>"Example") do |app|
               
               button(:theme=>"button-format-text-underline").on_click do
                 @editor.underline
-              end                        
+              end  
+              
+              button(:theme=>"button-document-save", :id=>:save).on_click do
+                @editor.unmodified= true
+                @save.sensitive=false
+                @editor_content_state.text = "Content modified? <span foreground='blue'>#{@editor.modified?}</span>"                
+              end                                      
             end
             
-            text :scrolled=>true, :id=>:editor
+            debounce = false      
+            text(:scrolled=>true, :id=>:editor).on_toggle_modify do   
+              bool = @editor.modified?
+              
+              next unless debounce == !bool
+              
+              debounce = !debounce
+              
+              @save.sensitive= bool
+        
+              report_event("Text content #{bool ? "" : "un"}modified.")
+              @editor_content_state.text = "Content modified? <span foreground='blue'>#{@editor.modified?}</span>"
+            end
+            
+            label :text=>"Content modified? <span foreground='blue'>true</span>", :id=>:editor_content_state, :expand => false
           end
           
           this.image :theme=>"menu-text-x-generic"

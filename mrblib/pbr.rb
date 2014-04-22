@@ -1234,6 +1234,12 @@ module PBR
         end
       end
       
+      def sensitive= bool
+      end
+      
+      def sensitive?
+      end
+      
       # Sets the text to display after the user hovers the mouse over for a length of time
       #
       # @param txt [String] the text to display
@@ -1707,6 +1713,14 @@ module PBR
         @on_modify_cb = b
       end
       
+      def on_unmodify &b
+        @on_unmodify_cb = b
+      end      
+      
+      def on_toggle_modify &b
+        @on_toggle_modify_cb = b
+      end
+      
       def on_source_load &b
         @source_loaded_cb = b
       end
@@ -1716,7 +1730,18 @@ module PBR
         @source_loaded_cb.call(self) if @source_loaded_cb
       end
       
+      def unmodified
+        cb = @on_toggle_modify_cb
+        cb.call(self) if cb      
+      
+        cb = @on_unmodify_cb
+        cb.call(self) if cb
+      end      
+      
       def modified
+        cb = @on_toggle_modify_cb
+        cb.call(self) if cb      
+      
         cb = @on_modify_cb
         cb.call(self) if cb
       end
@@ -1970,10 +1995,21 @@ module PBR::UI::Gtk
     
     def confirm title="", body=""
       g = Gtk::MessageDialog.new(toplevel.native, ::Gtk::DialogFlags::DESTROY_WITH_PARENT, ::Gtk::MessageType::WARNING, ::Gtk::ButtonsType::CANCEL | ::Gtk::ButtonsType::OK)
+
+      vb = g.get_message_area
       
-      g.set_property "secondary-text", body
-      g.set_property "text", title
-      
+      i = -1
+      vb.foreach do |q|
+        i += 1
+        if i == 0
+          q.set_markup "<big><b>#{title}</b></big>" 
+          
+        elsif i == 1
+          q.set_label body
+          q.show
+        end
+      end
+
       response = g.run
       
       g.destroy
@@ -1989,12 +2025,24 @@ module PBR::UI::Gtk
     def prompt title="", body="", value=""
       g = Gtk::MessageDialog.new(toplevel.native, ::Gtk::DialogFlags::DESTROY_WITH_PARENT, ::Gtk::MessageType::QUESTION, ::Gtk::ButtonsType::OK_CANCEL)
       
-      g.set_property "secondary-text", body
-      g.set_property "text", title
+      vb = g.get_message_area      
       
+      i = -1
+      vb.foreach do |q|
+        i += 1
+        if i == 0
+          q.set_markup "<big><b>#{title}</b></big>" 
+          
+        elsif i == 1
+          q.set_label body
+          q.show
+        end
+      end
+
       e = PBR::UI::Gtk::Entry.new
       e.text=value
       e.show
+      
       e.on_activate do
         g.response(::Gtk::ResponseType::OK)
       end
@@ -2075,6 +2123,14 @@ module PBR::UI::Gtk
   end
 
   module Widget
+    def sensitive?
+      native.get_sensitive
+    end
+    
+    def sensitive= bool
+      native.set_sensitive !!bool
+    end
+  
     def tooltip= txt
       native.set_tooltip_text txt
     end
@@ -2995,6 +3051,8 @@ module PBR::UI::Gtk
         e.add_event_listener "input", true do
           if wrapper.send :check_modify
             wrapper.send :modified
+          else
+            wrapper.send :unmodified
           end
 
           sel         = document.get_default_view.get_selection();
@@ -3004,7 +3062,7 @@ module PBR::UI::Gtk
           wrapper.internal.blur
           wrapper.internal.focus
           
-          # restor cursor
+          # restore cursor
           range = document.create_range();
           range.set_start(prior_range.get_end_container, prior_range.get_end_offset);
           range.collapse(true);
@@ -3025,6 +3083,7 @@ body, html {margin:0; padding:0; min-height: 100%;}
       super({})
       
       @on_init = proc do
+        p opts
         modify(opts)
       end
     end
@@ -3193,8 +3252,8 @@ EOC
     end
     
     def check_modify
-      bool = @save != (buff = internal.get_inner_html)
-      
+      bool = (@save != internal.get_inner_html)
+
       return bool
     end    
     
