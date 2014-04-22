@@ -411,7 +411,21 @@ module PBR
       
       # @return [String] or nil
       def prompt title="", body="", value="" 
-      end     
+      end 
+      
+      # A 'FileChooser' Dialog
+      #
+      # @param [Hash] opts
+      #
+      # @option opts [Symbol] :type A member of PBR::UI::ChoosePathAction
+      # @option opts [String] :title The Dialog's title
+      # @option opts [Symbol] :path Specify a default path
+      # @option opts [Symbol] :name Suggest a filename when +type+ is PBR::UI::ChoosePathAction::SAVE
+      # @option opts [Symbol] :folder Set the current folder                        
+      #
+      # @return [String] the path or nil if cancelled
+      def prompt_path opts={:type=>:open}
+      end    
     
       # Called around the time of 'main'
       def on_run &b
@@ -1018,6 +1032,12 @@ module PBR
       TOOLBAR     = 'toolbar'
       TOOLBAR_BIG = 'toolbar_big'
       LARGE       = 'large'
+    end
+    
+    module ChoosePathAction
+      OPEN          = :open
+      SAVE          = :save
+      FOLDER        = :folder
     end
     
     # Widget rendering a image to the screen

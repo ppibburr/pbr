@@ -1146,7 +1146,21 @@ module PBR
       
       # @return [String] or nil
       def prompt title="", body="", value="" 
-      end     
+      end 
+      
+      # A 'FileChooser' Dialog
+      #
+      # @param [Hash] opts
+      #
+      # @option opts [Symbol] :type A member of PBR::UI::ChoosePathAction
+      # @option opts [String] :title The Dialog's title
+      # @option opts [Symbol] :path Specify a default path
+      # @option opts [Symbol] :name Suggest a filename when +type+ is PBR::UI::ChoosePathAction::SAVE
+      # @option opts [Symbol] :folder Set the current folder                        
+      #
+      # @return [String] the path or nil if cancelled
+      def prompt_path opts={:type=>:open}
+      end    
     
       # Called around the time of 'main'
       def on_run &b
@@ -1755,6 +1769,12 @@ module PBR
       LARGE       = 'large'
     end
     
+    module ChoosePathAction
+      OPEN          = :open
+      SAVE          = :save
+      FOLDER        = :folder
+    end
+    
     # Widget rendering a image to the screen
     class Image < Widget
       def src
@@ -2062,7 +2082,44 @@ module PBR::UI::Gtk
       else
         return nil
       end
-    end    
+    end  
+    
+    def prompt_path opts={}
+      opts[:type]  ||= PBR::UI::ChoosePathAction::OPEN
+      opts[:title] ||= "Select a location ..."
+      
+      
+      action = nil
+      case opts[:type]
+      when PBR::UI::ChoosePathAction::FOLDER;
+        action = ::Gtk::FileChooserAction::SELECT_FOLDER
+      when PBR::UI::ChoosePathAction::SAVE
+        action = ::Gtk::FileChooserAction::SAVE
+      when PBR::UI::ChoosePathAction::OPEN
+        action = ::Gtk::FileChooserAction::OPEN
+      end
+      
+      dialog = Gtk::FileChooserDialog.new(opts[:title],
+                                            nil,
+                                            action,
+                                            )
+                                           
+      dialog.set_current_folder(opts[:folder]) if opts[:folder]     
+      dialog.set_filename(opts[:path]) if opts[:path]
+      dialog.set_current_name(opts[:name]) if opts[:name]                                     
+                                            
+      result = nil
+      case dialog.run
+      when Gtk::ResponseType::ACCEPT
+        result = dialog.get_filename
+      end
+
+      dialog.destroy
+
+      return nil unless result
+      
+      return result
+    end      
   end
 
   class KeyEvent < PBR::UI::KeyEvent
@@ -2284,7 +2341,9 @@ module PBR::UI::Gtk
     include Container
   
     def self.constructor *o
-      ::Gtk::MenuItem.new
+      i=::Gtk::MenuItem.new
+      i.set_use_underline true
+      i
     end
     
     def label 
@@ -3048,11 +3107,15 @@ module PBR::UI::Gtk
         e=n.get_main_frame.get_dom_document.get_element_by_id("internal")
         e.focus
         wrapper.send :init
+        
+        debounce = false
         e.add_event_listener "input", true do
           if wrapper.send :check_modify
-            wrapper.send :modified
+            wrapper.send :modified unless debounce
+            debounce = true            
           else
             wrapper.send :unmodified
+            debounce = false
           end
 
           sel         = document.get_default_view.get_selection();

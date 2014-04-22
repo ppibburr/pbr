@@ -49,13 +49,8 @@ Editor.run "Editor" do |app|
         end                                  
       end
       
-      debounce = false      
       text(:scrolled=>true, :id=>:editor).on_toggle_modify do   
         bool = @editor.modified?
-        
-        next unless debounce == !bool
-        
-        debounce = !debounce
         
         @save.sensitive= bool
   
