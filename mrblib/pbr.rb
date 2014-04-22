@@ -2106,7 +2106,11 @@ module PBR::UI::Gtk
                                            
       dialog.set_current_folder(opts[:folder]) if opts[:folder]     
       dialog.set_filename(opts[:path]) if opts[:path]
-      dialog.set_current_name(opts[:name]) if opts[:name]                                     
+      dialog.set_current_name(opts[:name]) if opts[:name]    
+      
+      if opts[:type] == PBR::UI::ChoosePathAction::SAVE
+        dialog.set_do_overwrite_confirmation true
+      end                                 
                                             
       result = nil
       case dialog.run
