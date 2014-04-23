@@ -222,6 +222,14 @@ module PBR::UI::Gtk
   end
 
   module Widget
+    def self.included cls
+      def cls.wrap native
+        ins = allocate
+        ins.instance_variable_set "@native", native
+        return ins
+      end
+    end
+    
     def sensitive?
       native.get_sensitive
     end
@@ -360,6 +368,18 @@ module PBR::UI::Gtk
     def add widget
       native.append widget.native
     end
+    
+    def item opts={} , &b
+      opts[:type] ||= PBR::UI::MenuItemType::TEXT
+    
+      i = PBR::UI::Gtk::MenuItem.new(opts)
+
+      add i
+
+      b.call i if b
+    
+      i
+    end
   end
   
   class Menubar < PBR::UI::Menubar
@@ -368,24 +388,100 @@ module PBR::UI::Gtk
     def self.constructor *o
       ::Gtk::MenuBar.new
     end
+    
+    def item opts={}, &b
+      i = super(opts)
+      
+      i.add menu=PBR::UI::Gtk::Menu.new()
+      
+      if b
+        b.call menu
+      end
+      
+      i
+    end
   end
   
   class Menu < PBR::UI::Menu
     include PBR::UI::Gtk::MenuShell
     
     def self.constructor *o
-      ::Gtk::Menu.new
+      m = ::Gtk::Menu.new
+      m.set_reserve_toggle_size false
+      m
     end    
   end
+  
+  ::Gtk::Lib.attach_function :gtk_container_forall, [:pointer, :pointer, :pointer], :void
   
   class MenuItem < PBR::UI::MenuItem
     include Widget
     include Container
   
-    def self.constructor *o
-      i=::Gtk::MenuItem.new
+    def self.constructor wrapper, opts, *o ,&b
+      case opts[:type]
+      when PBR::UI::MenuItemType::TEXT
+        i=::Gtk::MenuItem.new
+      when PBR::UI::MenuItemType::ICON
+        i=::Gtk::MenuItem.new
+      when PBR::UI::MenuItemType::CHECKED
+        i=::Gtk::CheckMenuItem.new
+      end
+      
       i.set_use_underline true
+      
       i
+    end
+    
+    def initialize opts={}
+      @type = opts[:type] ||= PBR::UI::MenuItemType::TEXT
+      
+      super opts
+      
+      @img = PBR::UI::Gtk::Image.new(:size=>[12,12]) unless opts[:theme]
+      
+      if opts[:theme]      
+        @img = PBR::UI::Gtk::Image.new(:theme=>opts[:theme])
+        image() 
+      end
+      
+      @show_image = false
+    end
+    
+    def image *o
+      unless @show_image
+        @show_image = true
+        
+        l = native.get_child
+        l.ref
+        
+        native.remove l
+        
+        native.add((f=PBR::UI::Gtk::Flow.new()).native)
+       
+        f.native.pack_start @img.native,false,false, 2       
+        f.native.pack_start l,true,true, 2
+        
+        show_all       
+      end
+    
+      if o.empty?
+        return @img
+      end
+      
+      @img.modify o[0]
+    end
+    
+    def checked= bool
+      return unless @type == PBR::UI::MenuItemType::CHECKED
+      
+      native.set_active bool
+    end
+    
+    def checked?
+      return unless @type == PBR::UI::MenuItemType::CHECKED
+          
+      native.get_active
     end
     
     def label 
@@ -404,6 +500,16 @@ module PBR::UI::Gtk
       native.signal_connect "activate" do
         b.call self
       end
+    end
+    
+    def menu &b
+      m = PBR::UI::Gtk::Menu.new
+    
+      add m
+      
+      b.call m if b
+      
+      return m
     end
   end
    

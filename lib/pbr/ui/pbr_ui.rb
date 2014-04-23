@@ -185,7 +185,7 @@ module PBR
         pb                = @buildee
         @buildee          = buildee
         
-        r = instance_exec &b
+        r = instance_exec @buildee,&b
       
         @build_mode = pm
         @buildee    = pb
@@ -864,19 +864,50 @@ module PBR
       end
     end
     
+    module MenuItemType
+      TEXT    = :text
+      ICON    = :icon
+      CHECKED = :check
+    end
+    
+    module MenuShell
+      include Container
+      
+      # @param [Hash] opts
+      #
+      # @option opts [Symbol] :type Member of PBR::UI::MenuItemType
+      # @option opts [String] :label The item text
+      # @option opts [String] :theme The item icon
+      # 
+      # @yieldparam [PBR::UI::Widget] widget
+      #
+      # @return [PBR::UI::MenuItem]
+      def item opt={}, &b
+      
+      end    
+    end
+    
     # A Menubar
     class Menubar < Widget
-      include Container
+      include MenuShell
     end
     
     # A Menu
     class Menu < Widget
-      include Container   
+      include MenuShell   
     end
     
     # A MenuItem
     class MenuItem < Widget
       include Container
+      
+      def checked?; end
+      def checked= bool; end
+      def image *o; end
+      
+      # @return [PBR::UI::Menu]
+      def menu &b
+      end
       
       # @param txt [String] the label
       def label= txt
@@ -885,9 +916,9 @@ module PBR
       def label
       end
       
-      def image= q
-      end
-      
+      # Callback for when the item is activated
+      #
+      #
       def on_activate &b
       end
     end
