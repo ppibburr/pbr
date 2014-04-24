@@ -325,7 +325,6 @@ module PBR::UI::Gtk
     include PBR::UI::Gtk::Container
           
     def add widget, expand=true, fill=true, pad=0
-      p pad
       native.pack_start widget.native, expand, fill, pad
     end
   end
@@ -537,8 +536,6 @@ module PBR::UI::Gtk
       theme = opts.delete :theme
       
       super opts
-      
-      p theme,:LABEL
       
       @image = theme ? PBR::UI::Gtk::Image.new(:theme=>theme) : PBR::UI::Gtk::Image.new(:size=>[12,12])
       @label = PBR::UI::Gtk::Label.new(:text=>label)
@@ -892,6 +889,50 @@ module PBR::UI::Gtk
       ::Gtk::Entry.new
     end
     
+    def initialize opts={}
+      icon_pos = opts.delete(:icon_position)
+      theme    = opts.delete(:theme)
+      
+      super
+      
+      if theme
+        @image = PBR::UI::Gtk::Image.new(:theme=>theme)
+        icon_pos ||= PBR::UI::IconLocation::LEFT      
+      else
+        if icon_pos
+          @image = PBR::UI::Gtk::Image.new(:size=>[12,12])
+        end
+      end
+      
+      modify :icon_position=>icon_pos if icon_pos
+    end
+    
+    def icon_position= ipos
+      @icon_position = ipos
+     
+      case ipos
+      when PBR::UI::IconLocation::RIGHT
+        native.set_property "secondary-icon-pixbuf", image.native.get_pixbuf.to_ptr
+        native.set_property "primary-icon-pixbuf", nil.to_ptr       
+      when PBR::UI::IconLocation::LEFT
+        native.set_property "secondary-icon-pixbuf", nil.to_ptr
+        native.set_property "primary-icon-pixbuf", image.native.get_pixbuf.to_ptr      
+      else
+      end
+    end
+    
+    def image *o
+      @image ||= PBR::UI::Image.new(:size=>[12,12])
+      
+      if o.empty?
+        return @image
+      end
+      
+      @image.modify o[0]
+      
+      icon_position = @icon_position || PBR::UI::IconLocation::LEFT
+    end
+    
     def text
       native.get_text
     end
@@ -1058,7 +1099,10 @@ module PBR::UI::Gtk
     
     def theme= theme
       name, size = PBR::UI::Gtk::icon_from_theme(theme)
-      native.set_from_icon_name name,size
+      it = ::Gtk::IconTheme.get_default
+      i = it.lookup_icon(name, size)
+      native.set_from_file i.get_filename
+      show
     end
     
     def src= src
@@ -1294,7 +1338,6 @@ body, html {margin:0; padding:0; min-height: 100%;}
       super({})
       
       @on_init = proc do
-        p opts
         modify(opts)
       end
     end

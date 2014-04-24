@@ -1,6 +1,70 @@
 module PBR
   # Skeleton for exposing a common, simple GUI interface
   module UI
+    module BoxLayoutProperty
+      FILL    = :fill
+      EXPAND  = :expand
+      PADDING = :padding
+    end
+    
+    module WidgetWithIconProperty
+      ICON_THEME    = :theme
+      ICON_POSITION = :icon_position
+    end
+    
+    module IconLocation
+      RIGHT  = :right
+      LEFT   = :left
+      TOP    = :top
+      BOTTOM = :bottom
+    end
+    
+    class KeyEvent
+      # @return [Integer]
+      def keyval
+      end
+      
+      # @return [Symbol] :key_press or :key_release
+      def type
+      end
+      
+      # @return [Integer] mask of modifiers present
+      def state
+      end
+      
+      # @return [Boolean] true if the Ctrl key is pressed
+      def ctrl?
+      end
+      
+      # @return [Boolean] true if the Shift key is pressed      
+      def shift?
+      end
+      
+      # @return [Boolean] true if the Alt key is pressed      
+      def alt?
+      end
+    end    
+    
+    module MenuItemType
+      TEXT    = :text
+      ICON    = :icon
+      CHECKED = :check
+    end    
+    
+    module IconSize
+      MENU        = 'menu'
+      BUTTON      = 'button'
+      TOOLBAR     = 'toolbar'
+      TOOLBAR_BIG = 'toolbar_big'
+      LARGE       = 'large'
+    end
+    
+    module ChoosePathAction
+      OPEN          = :open
+      SAVE          = :save
+      FOLDER        = :folder
+    end    
+  
     # Implemented by a 'frontend'
     module Backend
       def self.extended q
@@ -212,7 +276,7 @@ module PBR
       
       # Create a [PBR::UI::Button]
       #
-      # @param [Hash] opts options, where options maybe any property name and its value
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
       # @param [Proc] b when a block is passed App#build() is performed with this [Button] as 'root' container
       #
       # @return [PBR::UI::Button]      
@@ -263,7 +327,7 @@ module PBR
       # Create a [Flow]
       #
       # @param [Hash] opts options, where options maybe any property name and its value
-      # @param [Proc] b when a block is passed App#build() is performed with this [Flow] as 'root' container
+      # @param [Proc] b when a block is passed App#build() is performed with this [Flow] as 'root' container, as well, widget creation methods accept any PBR::UI::BoxLayoutProperty
       #
       # @return [PBR::UI::Flow]      
       def flow opts={}, &b
@@ -296,6 +360,8 @@ module PBR
       
       # Create a MenuItem
       #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
+      #
       # @return [PBR::UI::MenuItem]
       def menu_item opts={}, &b
         create_append_build :MenuItem, opts, &b
@@ -316,6 +382,8 @@ module PBR
       end       
       
       # Create a ToolItem
+      #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
       #
       # @return [PBR::UI::ToolItem]
       def tool_item opts={}, &b
@@ -348,12 +416,16 @@ module PBR
       
       # Create a Entry widget
       #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
+      #
       # @return [PBR::UI::Entry]
       def entry opts={}, &b
         create_append :Entry, opts
       end 
       
       # Creates a widget rendering an image on screen
+      #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as PBR::UI::WidgetWithIconProperty::THEME
       #
       # @return [PBR::UI::Image]
       def image opts={}, &b
@@ -449,32 +521,6 @@ module PBR
       end
     end
   
-    class KeyEvent
-      # @return [Integer]
-      def keyval
-      end
-      
-      # @return [Symbol] :key_press or :key_release
-      def type
-      end
-      
-      # @return [Integer] mask of modifiers present
-      def state
-      end
-      
-      # @return [Boolean] true if the Ctrl key is pressed
-      def ctrl?
-      end
-      
-      # @return [Boolean] true if the Shift key is pressed      
-      def shift?
-      end
-      
-      # @return [Boolean] true if the Alt key is pressed      
-      def alt?
-      end
-    end
-  
     # UI entry class
     class Widget   
       def self.native_class
@@ -491,6 +537,8 @@ module PBR
       end
       
       attr_reader :native
+      
+      # @param [Hash] opts where an option may be any setter method, ie, 'tooltip=' would be :tooltip=>'value' 
       def initialize opts={},&b
         @native = self.class.constructor(self,opts,&b)
         
@@ -672,7 +720,7 @@ module PBR
       end
     end
     
-    # Base class of BoxLayout [Container]'s
+    # Base class of BoxLayout Container's.
     class Box < Widget
       include Container
       
@@ -864,12 +912,6 @@ module PBR
       end
     end
     
-    module MenuItemType
-      TEXT    = :text
-      ICON    = :icon
-      CHECKED = :check
-    end
-    
     module MenuShell
       include Container
       
@@ -1055,20 +1097,6 @@ module PBR
         cb = @on_modify_cb
         cb.call(self) if cb
       end
-    end
-    
-    module IconSize
-      MENU        = 'menu'
-      BUTTON      = 'button'
-      TOOLBAR     = 'toolbar'
-      TOOLBAR_BIG = 'toolbar_big'
-      LARGE       = 'large'
-    end
-    
-    module ChoosePathAction
-      OPEN          = :open
-      SAVE          = :save
-      FOLDER        = :folder
     end
     
     # Widget rendering a image to the screen

@@ -736,6 +736,70 @@ end
 module PBR
   # Skeleton for exposing a common, simple GUI interface
   module UI
+    module BoxLayoutProperty
+      FILL    = :fill
+      EXPAND  = :expand
+      PADDING = :padding
+    end
+    
+    module WidgetWithIconProperty
+      ICON_THEME    = :theme
+      ICON_POSITION = :icon_position
+    end
+    
+    module IconLocation
+      RIGHT  = :right
+      LEFT   = :left
+      TOP    = :top
+      BOTTOM = :bottom
+    end
+    
+    class KeyEvent
+      # @return [Integer]
+      def keyval
+      end
+      
+      # @return [Symbol] :key_press or :key_release
+      def type
+      end
+      
+      # @return [Integer] mask of modifiers present
+      def state
+      end
+      
+      # @return [Boolean] true if the Ctrl key is pressed
+      def ctrl?
+      end
+      
+      # @return [Boolean] true if the Shift key is pressed      
+      def shift?
+      end
+      
+      # @return [Boolean] true if the Alt key is pressed      
+      def alt?
+      end
+    end    
+    
+    module MenuItemType
+      TEXT    = :text
+      ICON    = :icon
+      CHECKED = :check
+    end    
+    
+    module IconSize
+      MENU        = 'menu'
+      BUTTON      = 'button'
+      TOOLBAR     = 'toolbar'
+      TOOLBAR_BIG = 'toolbar_big'
+      LARGE       = 'large'
+    end
+    
+    module ChoosePathAction
+      OPEN          = :open
+      SAVE          = :save
+      FOLDER        = :folder
+    end    
+  
     # Implemented by a 'frontend'
     module Backend
       def self.extended q
@@ -947,7 +1011,7 @@ module PBR
       
       # Create a [PBR::UI::Button]
       #
-      # @param [Hash] opts options, where options maybe any property name and its value
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
       # @param [Proc] b when a block is passed App#build() is performed with this [Button] as 'root' container
       #
       # @return [PBR::UI::Button]      
@@ -998,7 +1062,7 @@ module PBR
       # Create a [Flow]
       #
       # @param [Hash] opts options, where options maybe any property name and its value
-      # @param [Proc] b when a block is passed App#build() is performed with this [Flow] as 'root' container
+      # @param [Proc] b when a block is passed App#build() is performed with this [Flow] as 'root' container, as well, widget creation methods accept any PBR::UI::BoxLayoutProperty
       #
       # @return [PBR::UI::Flow]      
       def flow opts={}, &b
@@ -1031,6 +1095,8 @@ module PBR
       
       # Create a MenuItem
       #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
+      #
       # @return [PBR::UI::MenuItem]
       def menu_item opts={}, &b
         create_append_build :MenuItem, opts, &b
@@ -1051,6 +1117,8 @@ module PBR
       end       
       
       # Create a ToolItem
+      #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
       #
       # @return [PBR::UI::ToolItem]
       def tool_item opts={}, &b
@@ -1083,12 +1151,16 @@ module PBR
       
       # Create a Entry widget
       #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as any PBR::UI::WidgetWithIconProperty
+      #
       # @return [PBR::UI::Entry]
       def entry opts={}, &b
         create_append :Entry, opts
       end 
       
       # Creates a widget rendering an image on screen
+      #
+      # @param [Hash] opts options, where options maybe any property name and its value as well as PBR::UI::WidgetWithIconProperty::THEME
       #
       # @return [PBR::UI::Image]
       def image opts={}, &b
@@ -1184,32 +1256,6 @@ module PBR
       end
     end
   
-    class KeyEvent
-      # @return [Integer]
-      def keyval
-      end
-      
-      # @return [Symbol] :key_press or :key_release
-      def type
-      end
-      
-      # @return [Integer] mask of modifiers present
-      def state
-      end
-      
-      # @return [Boolean] true if the Ctrl key is pressed
-      def ctrl?
-      end
-      
-      # @return [Boolean] true if the Shift key is pressed      
-      def shift?
-      end
-      
-      # @return [Boolean] true if the Alt key is pressed      
-      def alt?
-      end
-    end
-  
     # UI entry class
     class Widget   
       def self.native_class
@@ -1226,6 +1272,8 @@ module PBR
       end
       
       attr_reader :native
+      
+      # @param [Hash] opts where an option may be any setter method, ie, 'tooltip=' would be :tooltip=>'value' 
       def initialize opts={},&b
         @native = self.class.constructor(self,opts,&b)
         
@@ -1407,7 +1455,7 @@ module PBR
       end
     end
     
-    # Base class of BoxLayout [Container]'s
+    # Base class of BoxLayout Container's.
     class Box < Widget
       include Container
       
@@ -1599,12 +1647,6 @@ module PBR
       end
     end
     
-    module MenuItemType
-      TEXT    = :text
-      ICON    = :icon
-      CHECKED = :check
-    end
-    
     module MenuShell
       include Container
       
@@ -1636,6 +1678,10 @@ module PBR
     class MenuItem < Widget
       include Container
       
+      def checked?; end
+      def checked= bool; end
+      def image *o; end
+      
       # @return [PBR::UI::Menu]
       def menu &b
       end
@@ -1647,9 +1693,9 @@ module PBR
       def label
       end
       
-      def image= q
-      end
-      
+      # Callback for when the item is activated
+      #
+      #
       def on_activate &b
       end
     end
@@ -1786,20 +1832,6 @@ module PBR
         cb = @on_modify_cb
         cb.call(self) if cb
       end
-    end
-    
-    module IconSize
-      MENU        = 'menu'
-      BUTTON      = 'button'
-      TOOLBAR     = 'toolbar'
-      TOOLBAR_BIG = 'toolbar_big'
-      LARGE       = 'large'
-    end
-    
-    module ChoosePathAction
-      OPEN          = :open
-      SAVE          = :save
-      FOLDER        = :folder
     end
     
     # Widget rendering a image to the screen
@@ -2314,7 +2346,6 @@ module PBR::UI::Gtk
     include PBR::UI::Gtk::Container
           
     def add widget, expand=true, fill=true, pad=0
-      p pad
       native.pack_start widget.native, expand, fill, pad
     end
   end
@@ -2526,8 +2557,6 @@ module PBR::UI::Gtk
       theme = opts.delete :theme
       
       super opts
-      
-      p theme,:LABEL
       
       @image = theme ? PBR::UI::Gtk::Image.new(:theme=>theme) : PBR::UI::Gtk::Image.new(:size=>[12,12])
       @label = PBR::UI::Gtk::Label.new(:text=>label)
@@ -2881,6 +2910,50 @@ module PBR::UI::Gtk
       ::Gtk::Entry.new
     end
     
+    def initialize opts={}
+      icon_pos = opts.delete(:icon_position)
+      theme    = opts.delete(:theme)
+      
+      super
+      
+      if theme
+        @image = PBR::UI::Gtk::Image.new(:theme=>theme)
+        icon_pos ||= PBR::UI::IconLocation::LEFT      
+      else
+        if icon_pos
+          @image = PBR::UI::Gtk::Image.new(:size=>[12,12])
+        end
+      end
+      
+      modify :icon_position=>icon_pos if icon_pos
+    end
+    
+    def icon_position= ipos
+      @icon_position = ipos
+     
+      case ipos
+      when PBR::UI::IconLocation::RIGHT
+        native.set_property "secondary-icon-pixbuf", image.native.get_pixbuf.to_ptr
+        native.set_property "primary-icon-pixbuf", nil.to_ptr       
+      when PBR::UI::IconLocation::LEFT
+        native.set_property "secondary-icon-pixbuf", nil.to_ptr
+        native.set_property "primary-icon-pixbuf", image.native.get_pixbuf.to_ptr      
+      else
+      end
+    end
+    
+    def image *o
+      @image ||= PBR::UI::Image.new(:size=>[12,12])
+      
+      if o.empty?
+        return @image
+      end
+      
+      @image.modify o[0]
+      
+      icon_position = @icon_position || PBR::UI::IconLocation::LEFT
+    end
+    
     def text
       native.get_text
     end
@@ -3047,7 +3120,10 @@ module PBR::UI::Gtk
     
     def theme= theme
       name, size = PBR::UI::Gtk::icon_from_theme(theme)
-      native.set_from_icon_name name,size
+      it = ::Gtk::IconTheme.get_default
+      i = it.lookup_icon(name, size)
+      native.set_from_file i.get_filename
+      show
     end
     
     def src= src
@@ -3283,7 +3359,6 @@ body, html {margin:0; padding:0; min-height: 100%;}
       super({})
       
       @on_init = proc do
-        p opts
         modify(opts)
       end
     end
