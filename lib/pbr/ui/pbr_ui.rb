@@ -45,6 +45,28 @@ module PBR
       end
     end    
     
+    class MouseEvent
+      def button
+      end
+      
+      def type
+      end
+      
+      def x
+      end
+      
+      def y
+      end
+    end
+    
+    class MotionEvent
+      def x
+      end
+      
+      def y
+      end
+    end    
+    
     module MenuItemType
       TEXT    = :text
       ICON    = :icon
@@ -611,13 +633,50 @@ module PBR
       def on_key_up &b
       
       end
-      
+     
+      # Called when a mouse button is pressed on a widget
+      #
+      # @yieldparam [PBR::UI::MouseEvent] e an event object      
       def on_mouse_down &b
       
       end
       
+      # Called when a mouse button is released on a widget
+      #
+      # @yieldparam [PBR::UI::MouseEvent] e an event object
       def on_mouse_up &b
       
+      end
+      
+      # @yieldparam [PBR::UI::MouseEvent] e an event object      
+      def on_double_click &b
+      end
+      
+      # Called when the mouse moves in a widgets region
+      #
+      # @yieldparam [PBR::UI::MotionEvent] e an event object
+      def on_motion &b
+      
+      end
+      
+      # Callback for when a widget gains focus
+      #
+      # @param b [Proc] the callback to call on focus      
+      def on_focus &b
+      
+      end
+      
+      # Callback for when a widget looses focus
+      #
+      # @param b [Proc] the callback to call on blur
+      def on_blur &b
+      
+      end
+      
+      def on_mouse_enter &b
+      end
+      
+      def on_mouse_leave &b
       end
           
       # Creates the underlying native 'widget'      

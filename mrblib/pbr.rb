@@ -780,6 +780,28 @@ module PBR
       end
     end    
     
+    class MouseEvent
+      def button
+      end
+      
+      def type
+      end
+      
+      def x
+      end
+      
+      def y
+      end
+    end
+    
+    class MotionEvent
+      def x
+      end
+      
+      def y
+      end
+    end    
+    
     module MenuItemType
       TEXT    = :text
       ICON    = :icon
@@ -1346,13 +1368,46 @@ module PBR
       def on_key_up &b
       
       end
-      
+     
+      # Called when a mouse button is pressed on a widget
+      #
+      # @yieldparam [PBR::UI::MouseEvent] e an event object      
       def on_mouse_down &b
       
       end
       
+      # Called when a mouse button is released on a widget
+      #
+      # @yieldparam [PBR::UI::MouseEvent] e an event object
       def on_mouse_up &b
       
+      end
+      
+      # Called when the mouse moves in a widgets region
+      #
+      # @yieldparam [PBR::UI::MotionEvent] e an event object
+      def on_motion &b
+      
+      end
+      
+      # Callback for when a widget gains focus
+      #
+      # @param b [Proc] the callback to call on focus      
+      def on_focus &b
+      
+      end
+      
+      # Callback for when a widget looses focus
+      #
+      # @param b [Proc] the callback to call on blur
+      def on_blur &b
+      
+      end
+      
+      def on_mouse_enter &b
+      end
+      
+      def on_mouse_leave &b
       end
           
       # Creates the underlying native 'widget'      
@@ -2197,9 +2252,9 @@ module PBR::UI::Gtk
     def type
       case @native[:type]
       when Gdk::EventType::KEY_PRESS
-        :key_press
+        PBR::UI::EventType::KEY_PRESS
       when Gdk::EventType::KEY_RELEASE
-        :key_release
+        PBR::UI::EventType::KEY_RELASE
       end
     end
 
@@ -2209,7 +2264,7 @@ module PBR::UI::Gtk
     
     def press?
       case type
-      when :key_press
+      when PBR::UI::EventType::KEY_PRESS
         return true
       end
       
@@ -2218,7 +2273,7 @@ module PBR::UI::Gtk
     
     def release?
       case type
-      when :key_release
+      when PBR::UI::EventType::KEY_RELEASE
         return true
       end
       
@@ -2240,6 +2295,53 @@ module PBR::UI::Gtk
     def modifiers?
       state != 0
     end     
+  end
+  
+  class MouseEvent < PBR::UI::MouseEvent
+    attr_reader :native
+    def initialize native
+      @native = native
+    end
+    
+    def type
+      case native[:type]
+      when Gdk::EventType::BUTTON_PRESS
+        PBR::UI::EventType::BUTTON_PRESS
+      when Gdk::EventType::BUTTON_PRESS2
+        PBR::UI::EventType::BUTTON_PRESS2
+      when Gdk::EventType::BUTTON_PRESS3
+        PBR::UI::EventType::BUTTON_PRESS3
+      when Gdk::EventType::BUTTON_RELEASE
+        PBR::UI::EventType::BUTTON_RELEASE
+      end
+    end
+    
+    def button
+      native[:button]
+    end
+    
+    def x
+      native[:x]
+    end
+    
+    def y
+      native[:y]
+    end    
+  end
+
+  class MotionEvent < PBR::UI::MotionEvent
+    attr_reader :native
+    def initialize native
+      @native = native
+    end
+    
+    def x
+      native[:x]
+    end
+    
+    def y
+      native[:y]
+    end   
   end
 
   module Widget
@@ -2289,7 +2391,57 @@ module PBR::UI::Gtk
       native.signal_connect "key-press-event" do |*o|
         b.call PBR::UI::Gtk::KeyEvent.new(o[0].get_struct)
       end
-    end    
+    end 
+    
+    def on_mouse_down &b
+      native.signal_connect "button-press-event" do |e|
+        b.call(PBR::UI::Gtk::MouseEvent.new(e.get_struct))
+      end
+    end
+    
+    def on_mouse_up &b
+      native.signal_connect "button-release-event" do |e|
+        b.call(PBR::UI::Gtk::MouseEvent.new(e.get_struct))
+      end
+    end
+    
+    def on_double_click &b
+      native.signal_connect "button-press-event" do |e|
+        next unless e.get_struct[:type] == Gdk::EventType::BUTTON_PRESS2
+        
+        b.call(PBR::UI::Gtk::MouseEvent.new(e.get_struct))
+      end
+    end
+    
+    def on_motion &b
+      native.signal_connect "motion-notify-event" do |e|
+        b.call(PBR::UI::Gtk::MotionEvent.new(e.get_struct))
+      end
+    end
+    
+    def on_focus &b
+      native.signal_connect "focus-in-event" do |e|
+        b.call(self)
+      end
+    end
+    
+    def on_blur &b
+      native.signal_connect "focus-out-event" do |e|
+        b.call(self)
+      end
+    end   
+    
+    def on_mouse_enter &b
+      native.signal_connect "enter-notify-event" do |e|
+        b.call(self)
+      end
+    end
+    
+    def on_mouse_leave &b
+      native.signal_connect "leave-notify-event" do |e|
+        b.call(self)
+      end
+    end
   end
 
   module Container
